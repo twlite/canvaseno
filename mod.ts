@@ -17,11 +17,21 @@ export function dataURLtoBuffer(dataurl: string) {
     return data;
 }
 
-export async function loadImage(url: string): Promise<SkImage> {
-    const base64 = await fetchAuto(url);
-    const bf = dataURLtoBuffer(base64);
+export async function loadImage(src: string | Uint8Array | Buffer | ArrayBuffer | SharedArrayBuffer): Promise<SkImage> {
+    let bf: any;
+    
+    if (typeof src === "string") {
+        const base64 = await fetchAuto(src);
+        bf = dataURLtoBuffer(base64);
+    } else {
+        if (src instanceof Uint8Array) bf = src;
+        else bf = Buffer.from(src);
+    }
     let img = Canvas.MakeImageFromEncoded(bf);
     if (!img) throw new Error("Invalid Image");
+
+    // prototype
+    Object.defineProperty(img, "toString", { value: () => `<Image ${img?.width()}x${img?.height()}>` });
 
     return img;
 }
@@ -31,7 +41,17 @@ export function encodeAsBuffer(data: BufferLike): Buffer {
     return Buffer.from(data);
 }
 
-Object.defineProperty(Canvas, "createCanvas", { value: Canvas.MakeCanvas });
+// utility
+Object.defineProperties(Canvas, {
+    createCanvas: {
+        value: Canvas.MakeCanvas,
+        writable: true
+    },
+    loadImage: {
+        value: loadImage,
+        writable: true
+    }
+});
 
 export * from "./types.ts";
 export default Canvas;
